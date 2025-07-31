@@ -13,8 +13,7 @@ services:
     ports:
       - 8982:80 
     volumes:
-      - ${PWD}/laravel:/var/www/html:z
-      - ${PWD}/composer.phar:/usr/local/bin/composer
+      - ./laravel:/var/www/html:z
     networks:
       - traefik-public
       - phpmyadmin_default
@@ -43,7 +42,7 @@ services:
     ports:
       - 8983:3000
     volumes:
-      - ${PWD}/nodejs:/app:z
+      - ./nodejs:/app:z
       - /app/node_modules
     networks:
       - traefik-public
