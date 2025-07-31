@@ -32,11 +32,16 @@ COPY . /var/www/html
 # Copy existing application directory permissions
 COPY --chown=www-data:www-data . /var/www/html
 
+# Create composer home directory for www-data user
+RUN mkdir -p /var/www/.composer && chown -R www-data:www-data /var/www/.composer
+
 # Change current user to www
 USER www-data
 
 # Install composer dependencies (including dev for code analysis tools)
-RUN composer update --no-interaction --optimize-autoloader
+RUN composer config --global process-timeout 0 && \
+    composer config --global repos.packagist composer https://packagist.org && \
+    COMPOSER_PROCESS_TIMEOUT=0 composer update --no-interaction --optimize-autoloader
 
 # Switch back to root for Apache configuration
 USER root
