@@ -16,7 +16,7 @@ class User extends Authenticatable
     public function testUnusedVariable()
     {
         $usedVariable = 'This is used';
-        $unusedVariable = 'This is never used'; // Unused variable - should be detected
+        $unusedVariable = 'This is never useds'; // Unused variable - should be detected
         
         return $usedVariable;
     }
