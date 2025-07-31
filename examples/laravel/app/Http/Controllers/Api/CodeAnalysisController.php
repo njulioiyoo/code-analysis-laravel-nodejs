@@ -19,7 +19,7 @@ class CodeAnalysisController extends Controller
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
     public function index(Request $request)
-    {
+    {        
         $query = CodeAnalysis::query();
 
         // Filter by status

@@ -21,8 +21,8 @@ if [ -f "/.dockerenv" ]; then
     PHPSTAN_CMD="./vendor/bin/phpstan"
 else
     # Assume we're running via docker-compose or need to use docker
-    PINT_CMD="docker-compose exec laravel-app ./vendor/bin/pint"
-    PHPSTAN_CMD="docker-compose exec laravel-app ./vendor/bin/phpstan"
+    PINT_CMD="docker-compose exec codeanalysis-laravel ./vendor/bin/pint"
+    PHPSTAN_CMD="docker-compose exec codeanalysis-laravel ./vendor/bin/phpstan"
 fi
 
 # Check code formatting with Pint
