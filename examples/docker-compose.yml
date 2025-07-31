@@ -1,0 +1,62 @@
+services:
+  codeanalysis-laravel:
+    container_name: codeanalysis-laravel
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.backend=codeanalysis-laravel-ui
+      - traefik.frontend.rule=Host:laravel.codeanalysis.web.local
+      - traefik.port=80
+    ports:
+      - 8982:80 
+    volumes:
+      - ${PWD}/laravel:/var/www/html:z
+      - ${PWD}/composer.phar:/usr/local/bin/composer
+    networks:
+      - traefik-public
+      - phpmyadmin_default
+    restart: always
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_DATABASE=timebase_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword
+
+  codeanalysis-nodejs:
+    container_name: codeanalysis-nodejs
+    build:
+      context: ./nodejs
+      dockerfile: Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.backend=codeanalysis-nodejs-ui
+      - traefik.frontend.rule=Host:nodejs.codeanalysis.web.local
+      - traefik.port=3000
+    ports:
+      - 8983:3000
+    volumes:
+      - ${PWD}/nodejs:/app:z
+      - /app/node_modules
+    networks:
+      - traefik-public
+      - default
+    restart: always
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+
+
+networks:
+  traefik-public:
+    external: true
+  phpmyadmin_default:
+    external: true
+
