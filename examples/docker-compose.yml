@@ -25,7 +25,7 @@ services:
       - DB_CONNECTION=mysql
       - DB_HOST=mysql-db
       - DB_PORT=3306
-      - DB_DATABASE=timebase_db
+      - DB_DATABASE=codeanalysis
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
 
@@ -47,11 +47,16 @@ services:
       - /app/node_modules
     networks:
       - traefik-public
-      - default
+      - phpmyadmin_default
     restart: always
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_DATABASE=codeanalysis
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword
 
 
 networks:

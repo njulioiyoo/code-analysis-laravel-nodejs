@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const db = require('./database');
 require('dotenv').config();
 
 const app = express();
@@ -14,10 +15,94 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Node.js App</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                background: white;
+                padding: 2rem;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 500px;
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 1rem;
+            }
+            p {
+                color: #666;
+                line-height: 1.6;
+                margin-bottom: 1.5rem;
+            }
+            .version {
+                background: #f8f9fa;
+                padding: 0.5rem 1rem;
+                border-radius: 5px;
+                margin: 1rem 0;
+                font-family: monospace;
+            }
+            .links {
+                margin-top: 2rem;
+            }
+            .links a {
+                display: inline-block;
+                margin: 0 10px;
+                padding: 0.5rem 1rem;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                transition: background 0.3s;
+            }
+            .links a:hover {
+                background: #5a67d8;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 Welcome to Node.js App</h1>
+            <p>Your Express.js application is running successfully!</p>
+            <div class="version">Version: 1.0.0</div>
+            <p>This is a containerized Node.js application with Docker support.</p>
+            <div class="links">
+                <a href="/health">Health Check</a>
+                <a href="/api">API Info</a>
+                <a href="/db-test">Database Test</a>
+            </div>
+        </div>
+    </body>
+    </html>
+  `);
+});
+
+app.get('/api', (req, res) => {
   res.json({
     message: 'Node.js Code Analysis API',
     version: '1.0.0',
-    status: 'running'
+    status: 'running',
+    endpoints: {
+      'GET /': 'Welcome page',
+      'GET /health': 'Health check',
+      'GET /api': 'API information',
+      'GET /db-test': 'Database connection test'
+    }
   });
 });
 
@@ -26,6 +111,32 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/db-test', async (req, res) => {
+  try {
+    const isConnected = await db.testConnection();
+    if (isConnected) {
+      const tables = await db.query('SHOW TABLES');
+      res.json({
+        status: 'connected',
+        database: process.env.DB_DATABASE || 'codeanalysis',
+        tables: tables,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        status: 'connection failed',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Error handling middleware
@@ -44,6 +155,8 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('Testing database connection...');
+  await db.testConnection();
 });

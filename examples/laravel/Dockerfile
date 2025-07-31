@@ -35,8 +35,8 @@ COPY --chown=www-data:www-data . /var/www/html
 # Change current user to www
 USER www-data
 
-# Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install composer dependencies (including dev for code analysis tools)
+RUN composer update --no-interaction --optimize-autoloader
 
 # Switch back to root for Apache configuration
 USER root

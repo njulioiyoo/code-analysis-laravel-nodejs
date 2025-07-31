@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,4 +16,24 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/db-test', function () {
+    try {
+        $tables = DB::select('SHOW TABLES');
+        $databaseName = DB::connection()->getDatabaseName();
+        
+        return response()->json([
+            'status' => 'connected',
+            'database' => $databaseName,
+            'tables' => $tables,
+            'timestamp' => now()->toISOString()
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'timestamp' => now()->toISOString()
+        ], 500);
+    }
 });

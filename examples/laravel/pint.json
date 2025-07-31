@@ -1,0 +1,18 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "simplified_null_return": true,
+        "braces": true,
+        "array_syntax": {
+            "syntax": "short"
+        },
+        "ordered_imports": {
+            "sort_algorithm": "alpha"
+        }
+    },
+    "exclude": [
+        "bootstrap",
+        "storage",
+        "vendor"
+    ]
+}
