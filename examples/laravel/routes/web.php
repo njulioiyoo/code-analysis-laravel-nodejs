@@ -37,3 +37,7 @@ Route::get('/db-test', function () {
         ], 500);
     }
 });
+
+Route::get('/api/docs', function () {
+    return view('api-docs');
+});
