@@ -50,8 +50,8 @@ class CodeAnalysisController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param StoreCodeAnalysisRequest $request
-     * @return CodeAnalysisResource
+     * 
+     * 
      */
     public function store(StoreCodeAnalysisRequest $request)
     {
