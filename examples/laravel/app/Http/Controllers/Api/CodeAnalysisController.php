@@ -21,12 +21,23 @@ class CodeAnalysisController extends Controller
     {
         $query = CodeAnalysis::query(); 
 
+
+
+        
+
         if ($request->has('status')) {
             $query->byStatus($request->status);
         }
 
         if ($request->has('language')) {
             $query->byLanguage($request->language);
+        }
+
+        // JNO Example: Add search functionality
+        if ($request->has('search')) {
+            $searchTerm = $request->input('search');
+            $query->where('file_path', 'like', "%{$searchTerm}%")
+                  ->orWhere('analysis_result', 'like', "%{$searchTerm}%");
         }
 
         if ($request->has('project')) {

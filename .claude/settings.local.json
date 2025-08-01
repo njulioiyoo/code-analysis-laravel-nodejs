@@ -29,7 +29,12 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec codeanalysis-nodejs ls -la /app/)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec codeanalysis-nodejs ls -la /app/views/)",
       "Bash(composer require:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(ssh-add:*)",
+      "Bash(gh:*)"
     ],
     "deny": []
   }
