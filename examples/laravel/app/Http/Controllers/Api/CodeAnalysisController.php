@@ -21,6 +21,10 @@ class CodeAnalysisController extends Controller
     {
         $query = CodeAnalysis::query(); 
 
+
+
+        
+
         if ($request->has('status')) {
             $query->byStatus($request->status);
         }
