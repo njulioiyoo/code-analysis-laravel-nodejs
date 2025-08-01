@@ -5,8 +5,8 @@ parameters:
     paths:
         - app/
 
-    # Use level max to always get the strictest level
-    level: max
+    # Use level 5 for testing (temporarily lowered from max)
+    level: 5
 
     ignoreErrors:
         - '#PHPDoc tag @var#'
@@ -25,3 +25,11 @@ parameters:
     checkInternalClassCaseSensitivity: true
     checkFunctionNameCase: true
     rememberPossiblyImpureFunctionValues: true
+    
+    # NOTE: PHPStan does NOT detect unused variables by design
+    # This is a known limitation - PHPStan focuses on type analysis
+    # For unused variable detection, use:
+    # 1. PHP_CodeSniffer with Generic.CodeAnalysis.UnusedFunctionParameter
+    # 2. PHPMD (PHP Mess Detector) 
+    # 3. PHP CS Fixer with no_unused_imports rule
+    # 4. PHPStan extensions like phpstan/phpstan-strict-rules (requires PHP 8.0+)

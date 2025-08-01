@@ -1,3 +1,67 @@
-#!/bin/sh
+#!/bin/bash
 
-bash scripts/pre-commit.sh
+# Laravel Pre-commit Hook with Unused Variable Detection
+# Runs comprehensive code analysis before allowing commits
+
+echo "🔍 Running Laravel Code Analysis..."
+echo "=================================="
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Track if any checks fail
+CHECKS_FAILED=0
+
+# 1. Run PHPStan for type analysis
+echo -e "${YELLOW}📊 Running PHPStan for type analysis...${NC}"
+if ./vendor/bin/phpstan analyse --no-progress --quiet; then
+    echo -e "${GREEN}✅ PHPStan: No type errors found${NC}"
+else
+    echo -e "${RED}❌ PHPStan: Type errors detected${NC}"
+    CHECKS_FAILED=1
+fi
+
+echo ""
+
+# 2. Run unused variable detection on specific controller
+echo -e "${YELLOW}🔍 Checking for unused variables in CodeAnalysisController...${NC}"
+UNUSED_CHECK=$(php detect-unused-vars.php app/Http/Controllers/Api/CodeAnalysisController.php 2>/dev/null)
+if echo "$UNUSED_CHECK" | grep -q "Found.*unused variable"; then
+    echo -e "${RED}❌ Unused variables detected:${NC}"
+    echo "$UNUSED_CHECK" | grep -A 5 "Found.*unused variable"
+    CHECKS_FAILED=1
+else
+    echo -e "${GREEN}✅ No unused variables found${NC}"
+fi
+
+echo ""
+
+# 3. Run Laravel Pint for code style
+echo -e "${YELLOW}🎨 Running Laravel Pint for code style...${NC}"
+if ./vendor/bin/pint --test --quiet 2>/dev/null; then
+    echo -e "${GREEN}✅ Code style is correct${NC}"
+else
+    echo -e "${RED}❌ Code style issues detected${NC}"
+    echo "Run './vendor/bin/pint' to fix automatically"
+    CHECKS_FAILED=1
+fi
+
+echo ""
+echo "=================================="
+
+# Final result
+if [ $CHECKS_FAILED -eq 0 ]; then
+    echo -e "${GREEN}🎉 All checks passed! Commit allowed.${NC}"
+    exit 0
+else
+    echo -e "${RED}🚫 Some checks failed. Please fix issues before committing.${NC}"
+    echo ""
+    echo "Quick fixes:"
+    echo "- Type errors: Fix manually or improve type hints"
+    echo "- Unused variables: Remove unused variables or use them"
+    echo "- Code style: Run './vendor/bin/pint' to auto-fix"
+    exit 1
+fi

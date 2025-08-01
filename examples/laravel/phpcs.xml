@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ruleset name="Laravel Code Analysis">
+    <description>PHP_CodeSniffer configuration for Laravel project with unused variable detection</description>
+    
+    <!-- Files to analyze -->
+    <file>app/</file>
+    
+    <!-- Exclude patterns -->
+    <exclude-pattern>*/tests/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/bootstrap/cache/*</exclude-pattern>
+    
+    <!-- Show progress -->
+    <arg name="report" value="full"/>
+    <arg name="colors"/>
+    <arg value="p"/>
+    
+    <!-- Rules for unused variable detection -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <severity>5</severity>
+    </rule>
+    
+    <!-- Additional useful rules -->
+    <rule ref="Generic.CodeAnalysis.UnnecessaryFinalModifier"/>
+    <rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+    <rule ref="Generic.CodeAnalysis.EmptyStatement"/>
+    
+    <!-- PSR-12 basic rules -->
+    <rule ref="PSR12">
+        <!-- Exclude some rules that conflict with Laravel conventions -->
+        <exclude name="PSR1.Files.SideEffects"/>
+        <exclude name="PSR12.Files.FileHeader"/>
+    </rule>
+    
+    <!-- Custom severity levels -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <type>error</type>
+        <message>Unused parameter %s in function %s()</message>
+    </rule>
+</ruleset>
