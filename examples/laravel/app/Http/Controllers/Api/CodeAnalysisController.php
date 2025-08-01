@@ -19,8 +19,6 @@ class CodeAnalysisController extends Controller
      */
     public function index(Request $request)
     {
-        $unused = CodeAnalysis::first();
-
         $query = CodeAnalysis::query();
 
         if ($request->has('status')) {
