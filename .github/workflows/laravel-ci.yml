@@ -39,7 +39,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        composer install --prefer-dist --no-progress || composer update --prefer-dist --no-progress
+        # Try install first, if it fails due to lock file issues, update and install
+        if ! composer install --prefer-dist --no-progress; then
+          echo "Lock file incompatible, running composer update..."
+          composer update --prefer-dist --no-progress
+        fi
 
     - name: Generate key
       run: php artisan key:generate
