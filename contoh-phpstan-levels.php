@@ -54,7 +54,7 @@ class PHPStanLevelExample extends Model
 
     private function maybeReturnNull(): ?string
     {
-        return rand(0, 1) ? 'value' : null;
+        return rand(0, 1) ? 'values' : null;
     }
 
     // LEVEL 6: Tipe properti berubah secara tidak konsisten
