@@ -43,6 +43,11 @@ class CodeAnalysisController extends Controller
         return CodeAnalysisResource::collection($analyses);
     }
 
+    private function maybeReturnNull(): ?string
+    {
+        return rand(0, 1) ? 'values' : null;
+    }
+
     /**
      * Store a newly created resource in storage.
      *

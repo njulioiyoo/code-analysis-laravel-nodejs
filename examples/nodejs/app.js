@@ -18,12 +18,36 @@ const PORT = process.env.PORT || 3000;
 // }));
 // Middleware to prevent HTTPS upgrades
 app.use((req, res, next) => {
-  // Remove any headers that might cause HTTPS upgrade
-  res.removeHeader('Strict-Transport-Security');
-  res.removeHeader('Upgrade-Insecure-Requests');
+  // Override the setHeader method to prevent HTTPS-related headers
+  const originalSetHeader = res.setHeader;
+  res.setHeader = function(name, value) {
+    // Block security headers that force HTTPS
+    const blockedHeaders = [
+      'strict-transport-security',
+      'upgrade-insecure-requests', 
+      'content-security-policy'
+    ];
+    
+    if (blockedHeaders.includes(name.toLowerCase())) {
+      console.log(`Blocked security header: ${name}`);
+      return;
+    }
+    
+    // If CSP header, remove upgrade-insecure-requests directive
+    if (name.toLowerCase() === 'content-security-policy' && 
+        typeof value === 'string' && 
+        value.includes('upgrade-insecure-requests')) {
+      value = value.replace(/upgrade-insecure-requests;?\s*/g, '');
+      console.log(`Modified CSP header: ${value}`);
+    }
+    
+    return originalSetHeader.call(this, name, value);
+  };
   
-  // Don't set CSP upgrade-insecure-requests for local development
-  // This prevents browser from upgrading HTTP to HTTPS
+  // Explicitly set headers to prevent HTTPS upgrade
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
   next();
 });
