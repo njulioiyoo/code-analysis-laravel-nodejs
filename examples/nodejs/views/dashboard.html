@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Analysis Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .analyses-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .analysis-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .analysis-table th,
+        .analysis-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .analysis-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .analysis-table {
+                font-size: 0.9rem;
+            }
+            
+            .analysis-table th,
+            .analysis-table td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔍 Code Analysis Dashboard</h1>
+            <p>Monitor and track your code quality metrics</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Analyses</h3>
+                <div class="stat-number" id="totalAnalyses">-</div>
+                <div class="stat-label">All time</div>
+            </div>
+            <div class="stat-card">
+                <h3>Completed</h3>
+                <div class="stat-number" id="completedAnalyses">-</div>
+                <div class="stat-label">Success rate</div>
+            </div>
+            <div class="stat-card">
+                <h3>Pending</h3>
+                <div class="stat-number" id="pendingAnalyses">-</div>
+                <div class="stat-label">In progress</div>
+            </div>
+            <div class="stat-card">
+                <h3>Failed</h3>
+                <div class="stat-number" id="failedAnalyses">-</div>
+                <div class="stat-label">Need attention</div>
+            </div>
+        </div>
+
+        <!-- Analyses Section -->
+        <div class="analyses-section">
+            <h2 class="section-title">Recent Analyses</h2>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                </select>
+                
+                <select class="filter-select" id="languageFilter">
+                    <option value="">All Languages</option>
+                    <option value="php">PHP</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                </select>
+                
+                <input type="text" class="filter-select" id="projectFilter" placeholder="Filter by project...">
+                
+                <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="btn" onclick="clearFilters()">Clear</button>
+                <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+
+            <!-- Loading/Error States -->
+            <div id="loadingState" class="loading" style="display: none;">
+                Loading data...
+            </div>
+            
+            <div id="errorState" class="error" style="display: none;">
+                Failed to load data. Please try again.
+            </div>
+
+            <!-- Analysis Table -->
+            <table class="analysis-table" id="analysisTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Language</th>
+                        <th>Status</th>
+                        <th>Complexity</th>
+                        <th>Issues Found</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="analysisTableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination">
+                <!-- Pagination buttons will be generated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            LARAVEL_API_BASE: 'http://localhost:8982/api', // Laravel API endpoint
+            ITEMS_PER_PAGE: 10
+        };
+
+        // Global state
+        let currentPage = 1;
+        let currentFilters = {
+            status: '',
+            language: '',
+            project: ''
+        };
+        let totalPages = 1;
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard initializing...');
+            loadStatistics();
+            loadAnalyses();
+        });
+
+        // Load statistics from Laravel API
+        async function loadStatistics() {
+            try {
+                console.log('📊 Loading statistics...');
+                const response = await fetch(`${CONFIG.LARAVEL_API_BASE}/code-analyses/statistics`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Statistics data:', data);
+                
+                // Update statistics cards
+                document.getElementById('totalAnalyses').textContent = data.total_analyses || 0;
+                document.getElementById('completedAnalyses').textContent = data.completed_analyses || 0;
+                document.getElementById('pendingAnalyses').textContent = data.pending_analyses || 0;
+                document.getElementById('failedAnalyses').textContent = data.failed_analyses || 0;
+                
+            } catch (error) {
+                console.error('❌ Error loading statistics:', error);
+                // Set default values on error
+                document.getElementById('totalAnalyses').textContent = '?';
+                document.getElementById('completedAnalyses').textContent = '?';
+                document.getElementById('pendingAnalyses').textContent = '?';
+                document.getElementById('failedAnalyses').textContent = '?';
+            }
+        }
+
+        // Load analyses data from Laravel API
+        async function loadAnalyses(page = 1) {
+            console.log(`📋 Loading analyses page ${page}...`);
+            showLoading();
+            
+            try {
+                // Build query parameters
+                const params = new URLSearchParams({
+                    page: page,
+                    per_page: CONFIG.ITEMS_PER_PAGE
+                });
+                
+                // Add filters if set
+                if (currentFilters.status) params.append('status', currentFilters.status);
+                if (currentFilters.language) params.append('language', currentFilters.language);
+                if (currentFilters.project) params.append('project', currentFilters.project);
+                
+                const url = `${CONFIG.LARAVEL_API_BASE}/code-analyses?${params}`;
+                console.log('Fetching URL:', url);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Analyses data:', data);
+                
+                // Update table
+                populateAnalysesTable(data.data);
+                
+                // Update pagination
+                totalPages = data.last_page || 1;
+                currentPage = data.current_page || 1;
+                updatePagination();
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Error loading analyses:', error);
+                showError();
+            }
+        }
+
+        // Populate the analyses table with data
+        function populateAnalysesTable(analyses) {
+            const tbody = document.getElementById('analysisTableBody');
+            tbody.innerHTML = '';
+            
+            if (!analyses || analyses.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                            No analyses found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            analyses.forEach(analysis => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(analysis.project_name || 'Unknown')}</td>
+                    <td>${escapeHtml(analysis.language || 'Unknown')}</td>
+                    <td><span class="status-badge status-${analysis.status}">${analysis.status}</span></td>
+                    <td>${analysis.complexity_score ? analysis.complexity_score.toFixed(2) : 'N/A'}</td>
+                    <td>${analysis.issues_found || 0}</td>
+                    <td>${formatDate(analysis.created_at)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('analysisTable').style.display = 'table';
+        }
+
+        // Update pagination controls
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '‹ Previous';
+            prevBtn.disabled = currentPage <= 1;
+            prevBtn.onclick = () => changePage(currentPage - 1);
+            pagination.appendChild(prevBtn);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = i === currentPage ? 'active' : '';
+                pageBtn.onclick = () => changePage(i);
+                pagination.appendChild(pageBtn);
+            }
+            
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Next ›';
+            nextBtn.disabled = currentPage >= totalPages;
+            nextBtn.onclick = () => changePage(currentPage + 1);
+            pagination.appendChild(nextBtn);
+        }
+
+        // Change page
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                loadAnalyses(page);
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            currentFilters.status = document.getElementById('statusFilter').value;
+            currentFilters.language = document.getElementById('languageFilter').value;
+            currentFilters.project = document.getElementById('projectFilter').value;
+            
+            console.log('🔍 Applying filters:', currentFilters);
+            currentPage = 1; // Reset to first page
+            loadAnalyses(1);
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('languageFilter').value = '';
+            document.getElementById('projectFilter').value = '';
+            
+            currentFilters = { status: '', language: '', project: '' };
+            currentPage = 1;
+            loadAnalyses(1);
+        }
+
+        // Refresh data
+        function refreshData() {
+            console.log('🔄 Refreshing data...');
+            loadStatistics();
+            loadAnalyses(currentPage);
+        }
+
+        // Show loading state
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('analysisTable').style.display = 'none';
+        }
+
+        // Show error state
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('analysisTable').style.display = 'none';
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch (error) {
+                return 'Invalid Date';
+            }
+        }
+
+        // Handle network errors gracefully
+        window.addEventListener('online', () => {
+            console.log('🌐 Network connection restored');
+            refreshData();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📵 Network connection lost');
+        });
+    </script>
+</body>
+</html>

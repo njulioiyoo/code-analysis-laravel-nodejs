@@ -1,0 +1,144 @@
+PANDUAN LENGKAP PHPSTAN LEVELS DAN KONFIGURASI
+==============================================
+
+## PERUBAHAN YANG TELAH DILAKUKAN
+
+### 1. Docker Compose (examples/docker-compose.yml)
+BEFORE:
+- Menggunakan ${PWD} yang menyebabkan path error di Windows
+- Mount composer.phar yang tidak diperlukan
+
+AFTER:
+- Menggunakan path relatif ./laravel dan ./nodejs
+- Menghapus mount composer.phar yang redundant
+
+### 2. PHPStan Configuration (examples/laravel/phpstan.neon)
+BEFORE:
+- Level 8 dengan parameter yang tidak valid
+- Parameter checkUnusedLocalVariables, checkUnusedProperties yang tidak ada di PHPStan 1.x
+
+AFTER:
+- Level MAX (setara level 10+)
+- Hanya parameter valid yang didukung PHPStan 1.x
+- Konfigurasi strictest possible analysis
+
+## PHPSTAN LEVELS EXPLAINED
+
+| Level | Deteksi                                      | Contoh Error                                                     |
+|-------|----------------------------------------------|------------------------------------------------------------------|
+| 0     | Error dasar PHP                              | Memanggil method yang tidak ada: $obj->nonExistentMethod()      |
+| 1     | Variabel undefined                           | return $undefinedVariable;                                       |
+| 2     | Return type mismatch                         | function foo(): string { return 123; }                          |
+| 3     | Properti undefined                           | $obj->undefinedProperty                                          |
+| 4     | Array key yang mungkin tidak ada             | $data['maybe_exists'] tanpa pengecekan                          |
+| 5     | Null handling                                | Fungsi return ?string tapi digunakan sebagai string             |
+| 6     | Tipe variabel berubah                        | $var = "string"; $var = 123; strlen($var);                      |
+| 7     | Generic dan koleksi type mismatch            | Collection<string> tapi push integer                             |
+| 8     | Dead code dan impossible conditions         | if (is_int($stringVar)) - tidak akan pernah true                |
+| 9     | Semua type hint wajib ada                    | function foo($param) - harus ada type hint                      |
+| MAX   | Strictest possible (10+)                     | Semua edge case, PHPDoc detail, perfect type safety             |
+
+## KONFIGURASI PHPSTAN.NEON YANG DIGUNAKAN
+
+```neon
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+
+    level: max  # Level tertinggi yang tersedia
+
+    ignoreErrors:
+        - '#PHPDoc tag @var#'
+
+    excludePaths:
+        - ./*/*/FileToBeExcluded.php
+
+    # Parameter strict yang valid di PHPStan 1.x
+    checkMissingIterableValueType: true      # Cek tipe Collection<T>
+    checkGenericClassInNonGenericObjectType: true  # Cek generic usage
+    checkMissingCallableSignature: true      # Cek signature callback
+    checkUninitializedProperties: true       # Cek properti belum diinit
+    checkDynamicProperties: true             # Cek dynamic property access
+    treatPhpDocTypesAsCertain: true          # PHPDoc dianggap pasti
+    reportMaybesInMethodSignatures: true     # Report contravariance
+    checkInternalClassCaseSensitivity: true  # Case sensitivity
+    checkFunctionNameCase: true              # Function name case
+    rememberPossiblyImpureFunctionValues: true # Pure function tracking
+```
+
+## CARA TESTING
+
+1. Test dengan file contoh:
+```bash
+cd examples
+docker run --rm -v "$(pwd)/laravel:/var/www/html" codeanalysis-laravel ./vendor/bin/phpstan analyse --no-progress contoh-phpstan-levels.php
+```
+
+2. Test dengan level berbeda (edit phpstan.neon):
+```neon
+level: 0  # Mulai dari level 0
+level: 5  # Coba level 5
+level: max # Kembali ke max
+```
+
+## PRE-COMMIT HOOK
+
+Pre-commit hook sudah dikonfigurasi di .git/hooks/pre-commit untuk:
+1. Menjalankan Laravel Pint (code formatting)
+2. Menjalankan PHPStan dengan level MAX
+3. Auto-fix formatting jika ada masalah
+4. Gagal commit jika ada error PHPStan
+
+## ERROR YANG AKAN DITANGKAP DENGAN LEVEL MAX
+
+✅ **Level 0-2: Basic Errors**
+- Undefined methods, variables
+- Type mismatches
+- Basic PHP errors
+
+✅ **Level 3-4: Object & Array Safety**
+- Undefined properties
+- Array key existence
+- Object method calls
+
+✅ **Level 5-6: Advanced Type Safety**
+- Null pointer safety
+- Variable type consistency
+- Return type guarantees
+
+✅ **Level 7-8: Complex Analysis**
+- Generic type safety
+- Collection type checking
+- Dead code detection
+- Impossible conditions
+
+✅ **Level 9-MAX: Perfect Type Safety**
+- All type annotations required
+- PHPDoc completeness
+- Edge case handling
+- Strictest possible analysis
+
+## CONTOH PENGGUNAAN
+
+File `contoh-phpstan-levels.php` berisi contoh untuk setiap level.
+Jalankan dengan level berbeda untuk melihat error yang terdeteksi:
+
+```bash
+# Level 0: Hanya 1-2 error basic
+# Level 5: Sekitar 8-10 error
+# Level MAX: 15+ error terdeteksi
+```
+
+## TIPS UNTUK DEVELOPER
+
+1. **Mulai Gradual**: Mulai dari level 0, naik bertahap
+2. **Fix Step by Step**: Jangan langsung ke level MAX
+3. **Use PHPDoc**: Level tinggi butuh dokumentasi lengkap
+4. **Handle Nulls**: Selalu cek null dengan ?? atau isset()
+5. **Type Everything**: Semua parameter dan return wajib ada type
+6. **Use Strict Types**: Tambahkan declare(strict_types=1)
+
+Konfigurasi ini memberikan analisis paling ketat yang tersedia di PHPStan 1.x!

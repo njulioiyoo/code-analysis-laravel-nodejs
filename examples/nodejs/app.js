@@ -8,10 +8,34 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
+// Disable Helmet completely for local development to avoid HTTPS issues
+// app.use(helmet({
+//   contentSecurityPolicy: false, // Disable CSP completely
+//   crossOriginOpenerPolicy: false,
+//   originAgentCluster: false,
+//   hsts: false,
+//   forceHttps: false
+// }));
+// Middleware to prevent HTTPS upgrades
+app.use((req, res, next) => {
+  // Remove any headers that might cause HTTPS upgrade
+  res.removeHeader('Strict-Transport-Security');
+  res.removeHeader('Upgrade-Insecure-Requests');
+  
+  // Don't set CSP upgrade-insecure-requests for local development
+  // This prevents browser from upgrading HTTP to HTTPS
+  
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files with correct paths
+app.use('/views/public', express.static('public'));
+app.use('/views/components', express.static('components'));
+app.use('/views', express.static('views'));
 
 // Routes
 app.get('/', (req, res) => {
@@ -82,6 +106,7 @@ app.get('/', (req, res) => {
             <div class="version">Version: 1.0.0</div>
             <p>This is a containerized Node.js application with Docker support.</p>
             <div class="links">
+                <a href="/dashboard">📊 Dashboard</a>
                 <a href="/health">Health Check</a>
                 <a href="/api">API Info</a>
                 <a href="/db-test">Database Test</a>
@@ -90,6 +115,24 @@ app.get('/', (req, res) => {
     </body>
     </html>
   `);
+});
+
+// Dashboard routes
+app.get('/dashboard', (req, res) => {
+  res.sendFile(__dirname + '/views/dashboard-structured.html');
+});
+
+// Alternative dashboards
+app.get('/dashboard-fixed', (req, res) => {
+  res.sendFile(__dirname + '/views/vue-dashboard-fixed.html');
+});
+
+app.get('/dashboard-vue', (req, res) => {
+  res.sendFile(__dirname + '/views/vue-dashboard.html');
+});
+
+app.get('/dashboard-vanilla', (req, res) => {
+  res.sendFile(__dirname + '/views/dashboard.html');
 });
 
 app.get('/api', (req, res) => {

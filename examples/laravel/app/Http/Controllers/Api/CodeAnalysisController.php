@@ -15,33 +15,31 @@ class CodeAnalysisController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @param Request $request
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
     public function index(Request $request)
-    {        
+    {
+        $unused = CodeAnalysis::first();
+
         $query = CodeAnalysis::query();
 
-        // Filter by status
         if ($request->has('status')) {
             $query->byStatus($request->status);
         }
 
-        // Filter by language
         if ($request->has('language')) {
             $query->byLanguage($request->language);
         }
 
-        // Filter by project
         if ($request->has('project')) {
             $query->byProject($request->project);
         }
 
-        // Sort by created_at desc by default
         $query->orderBy('created_at', 'desc');
 
-        // Paginate results
-        $perPage = $request->get('per_page', 15);
+        $perPageRaw = $request->get('per_page', 15);
+        $perPage = is_numeric($perPageRaw) ? (int) $perPageRaw : 15;
+
         $analyses = $query->paginate($perPage);
 
         return CodeAnalysisResource::collection($analyses);
@@ -50,7 +48,6 @@ class CodeAnalysisController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param StoreCodeAnalysisRequest $request
      * @return CodeAnalysisResource
      */
     public function store(StoreCodeAnalysisRequest $request)
@@ -63,7 +60,6 @@ class CodeAnalysisController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param CodeAnalysis $codeAnalysis
      * @return CodeAnalysisResource
      */
     public function show(CodeAnalysis $codeAnalysis)
@@ -74,8 +70,6 @@ class CodeAnalysisController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param UpdateCodeAnalysisRequest $request
-     * @param CodeAnalysis $codeAnalysis
      * @return CodeAnalysisResource
      */
     public function update(UpdateCodeAnalysisRequest $request, CodeAnalysis $codeAnalysis)
@@ -88,7 +82,6 @@ class CodeAnalysisController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param CodeAnalysis $codeAnalysis
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(CodeAnalysis $codeAnalysis)
@@ -96,7 +89,7 @@ class CodeAnalysisController extends Controller
         $codeAnalysis->delete();
 
         return response()->json([
-            'message' => 'Code analysis deleted successfully'
+            'message' => 'Code analysis deleted successfully',
         ], Response::HTTP_NO_CONTENT);
     }
 
@@ -127,7 +120,7 @@ class CodeAnalysisController extends Controller
             'pending_analyses' => $pendingAnalyses,
             'failed_analyses' => $failedAnalyses,
             'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
-            'average_complexity' => $avgComplexity ? round($avgComplexity, 2) : null,
+            'average_complexity' => $avgComplexity !== null ? round((float) $avgComplexity, 2) : null,
             'language_distribution' => $languageStats,
         ]);
     }

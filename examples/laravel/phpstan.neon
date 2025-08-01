@@ -2,12 +2,11 @@ includes:
     - ./vendor/larastan/larastan/extension.neon
 
 parameters:
-
     paths:
         - app/
 
-    # Level 9 is the highest level  
-    level: 8
+    # Use level max to always get the strictest level
+    level: max
 
     ignoreErrors:
         - '#PHPDoc tag @var#'
@@ -15,7 +14,14 @@ parameters:
     excludePaths:
         - ./*/*/FileToBeExcluded.php
 
-    checkMissingIterableValueType: false
-    checkUnusedLocalVariables: true
-    checkUnusedProperties: true
-    checkUnusedMethods: true
+    # Core PHPStan strict parameters
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+    checkMissingCallableSignature: true
+    checkUninitializedProperties: true
+    checkDynamicProperties: true
+    treatPhpDocTypesAsCertain: true
+    reportMaybesInMethodSignatures: true
+    checkInternalClassCaseSensitivity: true
+    checkFunctionNameCase: true
+    rememberPossiblyImpureFunctionValues: true

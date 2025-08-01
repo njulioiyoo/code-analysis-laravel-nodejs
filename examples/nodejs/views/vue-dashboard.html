@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Analysis Dashboard - Vue.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .analyses-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 0.3rem;
+        }
+
+        .filter-select, .filter-input {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .analysis-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .analysis-table th,
+        .analysis-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .analysis-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            background: #f8f9fa;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .pagination button:hover:not(:disabled):not(.active) {
+            background: #e9ecef;
+        }
+
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .analysis-table {
+                font-size: 0.9rem;
+            }
+            
+            .analysis-table th,
+            .analysis-table td {
+                padding: 0.5rem;
+            }
+
+            .filter-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Vue-specific styles */
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <!-- Header -->
+        <div class="container">
+            <div class="header">
+                <h1>🔍 Code Analysis Dashboard</h1>
+                <p>Built with Vue.js - Monitor and track your code quality metrics</p>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card" v-for="stat in statisticsCards" :key="stat.key">
+                    <h3>{{ stat.title }}</h3>
+                    <div class="stat-number">{{ stat.value }}</div>
+                    <div class="stat-label">{{ stat.label }}</div>
+                </div>
+            </div>
+
+            <!-- Analyses Section -->
+            <div class="analyses-section">
+                <h2 class="section-title">Recent Analyses</h2>
+                
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select v-model="filters.status" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Language</label>
+                        <select v-model="filters.language" class="filter-select">
+                            <option value="">All Languages</option>
+                            <option value="php">PHP</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="python">Python</option>
+                            <option value="java">Java</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Project</label>
+                        <input 
+                            v-model="filters.project" 
+                            type="text" 
+                            class="filter-input" 
+                            placeholder="Filter by project..."
+                        >
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-actions">
+                            <button class="btn" @click="applyFilters" :disabled="loading">
+                                🔍 Apply
+                            </button>
+                            <button class="btn btn-secondary" @click="clearFilters">
+                                Clear
+                            </button>
+                            <button class="btn" @click="refreshData" :disabled="loading">
+                                🔄 {{ loading ? 'Loading...' : 'Refresh' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <transition name="fade">
+                    <div v-if="loading" class="loading">
+                        <div>📊 Loading data...</div>
+                    </div>
+                </transition>
+                
+                <!-- Error State -->
+                <transition name="fade">
+                    <div v-if="error && !loading" class="error">
+                        ❌ {{ error }}
+                        <button class="btn" @click="refreshData" style="margin-left: 1rem;">
+                            Try Again
+                        </button>
+                    </div>
+                </transition>
+
+                <!-- Empty State -->
+                <transition name="fade">
+                    <div v-if="!loading && !error && analyses.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <h3>No analyses found</h3>
+                        <p>Try adjusting your filters or create some analyses first.</p>
+                    </div>
+                </transition>
+
+                <!-- Analysis Table -->
+                <transition name="fade">
+                    <table v-if="!loading && !error && analyses.length > 0" class="analysis-table">
+                        <thead>
+                            <tr>
+                                <th>Project</th>
+                                <th>Language</th>
+                                <th>Status</th>
+                                <th>Complexity</th>
+                                <th>Issues Found</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="analysis in analyses" :key="analysis.id">
+                                <td>{{ analysis.project_name || 'Unknown' }}</td>
+                                <td>
+                                    <span style="text-transform: capitalize;">
+                                        {{ analysis.language || 'Unknown' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span :class="`status-badge status-${analysis.status}`">
+                                        {{ analysis.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ analysis.complexity_score ? analysis.complexity_score.toFixed(2) : 'N/A' }}
+                                </td>
+                                <td>{{ analysis.issues_found || 0 }}</td>
+                                <td>{{ formatDate(analysis.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </transition>
+
+                <!-- Pagination -->
+                <div v-if="totalPages > 1" class="pagination">
+                    <button 
+                        @click="changePage(currentPage - 1)"
+                        :disabled="currentPage <= 1 || loading"
+                    >
+                        ‹ Previous
+                    </button>
+                    
+                    <button 
+                        v-for="page in paginationRange" 
+                        :key="page"
+                        @click="changePage(page)"
+                        :class="{ active: page === currentPage }"
+                        :disabled="loading"
+                    >
+                        {{ page }}
+                    </button>
+                    
+                    <button 
+                        @click="changePage(currentPage + 1)"
+                        :disabled="currentPage >= totalPages || loading"
+                    >
+                        Next ›
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue.js 3 CDN -->
+    <script src="http://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    // Configuration
+                    config: {
+                        laravelApiBase: 'http://localhost:8982/api',
+                        itemsPerPage: 10
+                    },
+                    
+                    // State
+                    loading: false,
+                    error: null,
+                    
+                    // Statistics
+                    statistics: {
+                        total_analyses: 0,
+                        completed_analyses: 0,
+                        pending_analyses: 0,
+                        failed_analyses: 0,
+                        completion_rate: 0,
+                        average_complexity: null
+                    },
+                    
+                    // Analyses data
+                    analyses: [],
+                    currentPage: 1,
+                    totalPages: 1,
+                    
+                    // Filters
+                    filters: {
+                        status: '',
+                        language: '',
+                        project: ''
+                    }
+                };
+            },
+
+            computed: {
+                statisticsCards() {
+                    return [
+                        {
+                            key: 'total',
+                            title: 'Total Analyses',
+                            value: this.statistics.total_analyses || '-',
+                            label: 'All time'
+                        },
+                        {
+                            key: 'completed',
+                            title: 'Completed',
+                            value: this.statistics.completed_analyses || '-',
+                            label: `${this.statistics.completion_rate || 0}% success rate`
+                        },
+                        {
+                            key: 'pending',
+                            title: 'Pending',
+                            value: this.statistics.pending_analyses || '-',
+                            label: 'In progress'
+                        },
+                        {
+                            key: 'failed',
+                            title: 'Failed',
+                            value: this.statistics.failed_analyses || '-',
+                            label: 'Need attention'
+                        }
+                    ];
+                },
+
+                paginationRange() {
+                    const range = [];
+                    const startPage = Math.max(1, this.currentPage - 2);
+                    const endPage = Math.min(this.totalPages, this.currentPage + 2);
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                        range.push(i);
+                    }
+                    
+                    return range;
+                }
+            },
+
+            methods: {
+                async loadStatistics() {
+                    try {
+                        console.log('📊 Loading statistics...');
+                        const response = await fetch(`${this.config.laravelApiBase}/code-analyses/statistics`);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Statistics loaded:', data);
+                        
+                        this.statistics = {
+                            total_analyses: data.total_analyses || 0,
+                            completed_analyses: data.completed_analyses || 0,
+                            pending_analyses: data.pending_analyses || 0,
+                            failed_analyses: data.failed_analyses || 0,
+                            completion_rate: data.completion_rate || 0,
+                            average_complexity: data.average_complexity
+                        };
+                        
+                    } catch (error) {
+                        console.error('❌ Error loading statistics:', error);
+                        // Keep default values on error
+                    }
+                },
+
+                async loadAnalyses(page = 1) {
+                    console.log(`📋 Loading analyses page ${page}...`);
+                    this.loading = true;
+                    this.error = null;
+                    
+                    try {
+                        // Build query parameters
+                        const params = new URLSearchParams({
+                            page: page,
+                            per_page: this.config.itemsPerPage
+                        });
+                        
+                        // Add filters if set
+                        if (this.filters.status) params.append('status', this.filters.status);
+                        if (this.filters.language) params.append('language', this.filters.language);
+                        if (this.filters.project) params.append('project', this.filters.project);
+                        
+                        const url = `${this.config.laravelApiBase}/code-analyses?${params}`;
+                        console.log('Fetching URL:', url);
+                        
+                        const response = await fetch(url);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Analyses loaded:', data);
+                        
+                        // Update data
+                        this.analyses = data.data || [];
+                        this.totalPages = data.last_page || 1;
+                        this.currentPage = data.current_page || 1;
+                        
+                    } catch (error) {
+                        console.error('❌ Error loading analyses:', error);
+                        this.error = `Failed to load data: ${error.message}`;
+                        this.analyses = [];
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                applyFilters() {
+                    console.log('🔍 Applying filters:', this.filters);
+                    this.currentPage = 1; // Reset to first page
+                    this.loadAnalyses(1);
+                },
+
+                clearFilters() {
+                    console.log('🧹 Clearing filters');
+                    this.filters = {
+                        status: '',
+                        language: '',
+                        project: ''
+                    };
+                    this.currentPage = 1;
+                    this.loadAnalyses(1);
+                },
+
+                changePage(page) {
+                    if (page >= 1 && page <= this.totalPages && !this.loading) {
+                        this.currentPage = page;
+                        this.loadAnalyses(page);
+                    }
+                },
+
+                refreshData() {
+                    console.log('🔄 Refreshing data...');
+                    this.loadStatistics();
+                    this.loadAnalyses(this.currentPage);
+                },
+
+                formatDate(dateString) {
+                    try {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                    } catch (error) {
+                        return 'Invalid Date';
+                    }
+                }
+            },
+
+            mounted() {
+                console.log('🚀 Vue Dashboard initializing...');
+                this.loadStatistics();
+                this.loadAnalyses();
+
+                // Handle network status
+                window.addEventListener('online', () => {
+                    console.log('🌐 Network connection restored');
+                    this.refreshData();
+                });
+
+                window.addEventListener('offline', () => {
+                    console.log('📵 Network connection lost');
+                    this.error = 'Network connection lost. Please check your internet connection.';
+                });
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

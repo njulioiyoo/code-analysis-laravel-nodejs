@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analisis Kode - Vue.js</title>
+    
+    <!-- CSP disabled for local development to prevent HTTPS issues -->
+    
+    <!-- CSS External -->
+    <link rel="stylesheet" href="/views/public/css/dashboard.css">
+    
+    <!-- Font untuk ikon dan typography yang lebih baik - disabled untuk development -->
+    <!-- Google Fonts disabled to avoid HTTPS issues in local development -->
+    
+    <style>
+        /* Override font family dengan Inter yang lebih modern */
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Loading indicator sebelum Vue.js load */
+        .pre-vue-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Hide Vue app until it's ready */
+        #app {
+            display: none;
+        }
+        
+        #app.vue-ready {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading screen sebelum Vue.js siap -->
+    <div id="pre-loading" class="pre-vue-loading">
+        <div class="loading-spinner"></div>
+        <h2>🚀 Memuat Dashboard</h2>
+        <p>Mohon tunggu sebentar...</p>
+    </div>
+
+    <!-- Aplikasi Vue.js utama -->
+    <div id="app">
+        <!-- Header Section -->
+        <div class="container">
+            <header class="header">
+                <h1>🔍 Dashboard Analisis Kode</h1>
+                <p>Monitoring dan tracking kualitas kode dengan Vue.js & Laravel API</p>
+                
+                <!-- Status koneksi API -->
+                <div class="api-status" :class="apiStatusClass">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">{{ apiStatusText }}</span>
+                </div>
+            </header>
+
+            <!-- Statistics Section menggunakan komponen StatisticsCard -->
+            <section class="statistics-section">
+                <div class="stats-grid">
+                    <statistics-card
+                        v-for="stat in statisticsCards"
+                        :key="stat.key"
+                        :title="stat.title"
+                        :value="stat.value"
+                        :label="stat.label"
+                        :icon="stat.icon"
+                        :color="stat.color"
+                        :type="stat.type"
+                        :loading="statisticsLoading"
+                        :show-progress="stat.showProgress"
+                        :progress-percentage="stat.progressPercentage"
+                        @card-clicked="handleStatisticCardClick"
+                    />
+                </div>
+            </section>
+
+            <!-- Filters dan Controls Section -->
+            <section class="controls-section">
+                <div class="analyses-section">
+                    <div class="section-header">
+                        <h2 class="section-title">📋 Data Analisis Terbaru</h2>
+                        <div class="section-actions">
+                            <button 
+                                class="btn btn-success" 
+                                @click="handleCreateNew"
+                                :disabled="loading"
+                            >
+                                ➕ Buat Analisis Baru
+                            </button>
+                            <button 
+                                class="btn" 
+                                @click="refreshAllData"
+                                :disabled="loading"
+                            >
+                                🔄 {{ loading ? 'Memuat...' : 'Refresh' }}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Controls -->
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label class="filter-label">📊 Status Analisis</label>
+                            <select v-model="filters.status" class="filter-select" @change="applyFilters">
+                                <option value="">Semua Status</option>
+                                <option value="completed">✅ Selesai</option>
+                                <option value="pending">⏳ Sedang Proses</option>
+                                <option value="failed">❌ Gagal</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">💻 Bahasa Pemrograman</label>
+                            <select v-model="filters.language" class="filter-select" @change="applyFilters">
+                                <option value="">Semua Bahasa</option>
+                                <option value="php">🐘 PHP</option>
+                                <option value="javascript">⚡ JavaScript</option>
+                                <option value="typescript">📘 TypeScript</option>
+                                <option value="python">🐍 Python</option>
+                                <option value="java">☕ Java</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">📁 Nama Proyek</label>
+                            <input 
+                                v-model="filters.project" 
+                                type="text" 
+                                class="filter-input" 
+                                placeholder="Cari berdasarkan nama proyek..."
+                                @input="debounceFilter"
+                            >
+                        </div>
+                        
+                        <div class="filter-group">
+                            <div class="filter-actions">
+                                <button class="btn" @click="applyFilters" :disabled="loading">
+                                    🔍 Terapkan Filter
+                                </button>
+                                <button class="btn btn-secondary" @click="clearAllFilters">
+                                    🧹 Bersihkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Table menggunakan komponen AnalysisTable -->
+                    <analysis-table
+                        :analyses="analyses"
+                        :loading="analysesLoading"
+                        :error="analysesError"
+                        :sort-by="sortBy"
+                        :sort-order="sortOrder"
+                        :loading-message="'📊 Sedang memuat data analisis...'"
+                        :empty-message="getEmptyMessage()"
+                        @sort-changed="handleSortChange"
+                        @row-clicked="handleAnalysisRowClick"
+                        @view-analysis="handleViewAnalysis"
+                        @edit-analysis="handleEditAnalysis"
+                        @delete-analysis="handleDeleteAnalysis"
+                        @retry="loadAnalysesData"
+                    />
+
+                    <!-- Pagination Controls -->
+                    <div v-if="totalPages > 1" class="pagination-section">
+                        <div class="pagination-info">
+                            <span>
+                                Menampilkan {{ paginationInfo.from }}-{{ paginationInfo.to }} 
+                                dari {{ paginationInfo.total }} analisis
+                            </span>
+                        </div>
+                        
+                        <div class="pagination">
+                            <button 
+                                @click="changePage(currentPage - 1)"
+                                :disabled="currentPage <= 1 || loading"
+                                class="pagination-btn"
+                            >
+                                ‹ Sebelumnya
+                            </button>
+                            
+                            <button 
+                                v-for="page in paginationRange" 
+                                :key="page"
+                                @click="changePage(page)"
+                                :class="{ active: page === currentPage }"
+                                :disabled="loading"
+                                class="pagination-btn"
+                            >
+                                {{ page }}
+                            </button>
+                            
+                            <button 
+                                @click="changePage(currentPage + 1)"
+                                :disabled="currentPage >= totalPages || loading"
+                                class="pagination-btn"
+                            >
+                                Selanjutnya ›
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- JavaScript Dependencies -->
+    
+    <!-- Vue.js 3 CDN - using HTTP -->
+    <script src="http://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Konfigurasi aplikasi -->
+    <script src="/views/public/js/config.js"></script>
+    
+    <!-- Service untuk API -->
+    <script src="/views/public/js/api-service.js"></script>
+    
+    <!-- Komponen Vue.js -->
+    <script src="/views/components/StatisticsCard.js"></script>
+    <script src="/views/components/AnalysisTable.js"></script>
+    
+    <!-- Aplikasi Vue.js utama -->
+    <script>
+        /**
+         * APLIKASI UTAMA DASHBOARD ANALISIS KODE
+         * 
+         * Ini adalah aplikasi Vue.js utama yang menggabungkan semua komponen
+         * dan mengelola state global aplikasi dashboard
+         */
+        
+        // Pastikan Vue.js sudah dimuat
+        if (typeof Vue === 'undefined') {
+            document.getElementById('pre-loading').innerHTML = `
+                <div style="color: #dc3545;">
+                    ❌ Gagal memuat Vue.js<br>
+                    <small>Periksa koneksi internet Anda</small>
+                </div>
+            `;
+        } else {
+            // Tunggu sampai config.js dan dependencies lainnya dimuat
+            if (typeof window.debugLog === 'undefined') {
+                // Fallback jika config.js belum dimuat
+                window.debugLog = function(message, data = null) {
+                    console.log(`[Dashboard Debug] ${message}`, data || '');
+                };
+            }
+            
+            // Inisialisasi aplikasi Vue.js
+            const { createApp } = Vue;
+            
+            const app = createApp({
+                /**
+                 * DATA REAKTIF APLIKASI
+                 * Semua data yang digunakan di template harus didefinisikan di sini
+                 */
+                data() {
+                    return {
+                        // Status loading dan error
+                        loading: false,
+                        statisticsLoading: false,
+                        analysesLoading: false,
+                        analysesError: null,
+                        apiStatus: 'checking', // 'checking', 'connected', 'error'
+                        
+                        // Data statistik
+                        statistics: {
+                            total_analyses: 0,
+                            completed_analyses: 0,
+                            pending_analyses: 0,
+                            failed_analyses: 0,
+                            completion_rate: 0,
+                            average_complexity: null
+                        },
+                        
+                        // Data analisis dan pagination
+                        analyses: [],
+                        currentPage: 1,
+                        totalPages: 1,
+                        paginationInfo: {
+                            from: 0,
+                            to: 0,
+                            total: 0
+                        },
+                        
+                        // Filter dan sorting
+                        filters: {
+                            status: '',
+                            language: '',
+                            project: ''
+                        },
+                        sortBy: 'created_at',
+                        sortOrder: 'desc',
+                        
+                        // Debounce timer untuk filter search
+                        filterDebounceTimer: null,
+                        
+                        // Auto-refresh timer
+                        autoRefreshTimer: null
+                    };
+                },
+                
+                /**
+                 * COMPUTED PROPERTIES
+                 * Data yang dihitung berdasarkan data reaktif lainnya
+                 */
+                computed: {
+                    /**
+                     * Konfigurasi kartu statistik
+                     */
+                    statisticsCards() {
+                        return [
+                            {
+                                key: 'total',
+                                title: 'Total Analisis',
+                                value: this.statistics.total_analyses,
+                                label: 'Sepanjang masa',
+                                icon: '📊',
+                                color: '#667eea',
+                                type: 'info'
+                            },
+                            {
+                                key: 'completed',
+                                title: 'Berhasil Diselesaikan',
+                                value: this.statistics.completed_analyses,
+                                label: `${this.statistics.completion_rate}% tingkat keberhasilan`,
+                                icon: '✅',
+                                color: '#28a745',
+                                type: 'success',
+                                showProgress: true,
+                                progressPercentage: this.statistics.completion_rate
+                            },
+                            {
+                                key: 'pending',
+                                title: 'Sedang Diproses',
+                                value: this.statistics.pending_analyses,
+                                label: 'Dalam antrian',
+                                icon: '⏳',
+                                color: '#ffc107',
+                                type: 'warning'
+                            },
+                            {
+                                key: 'failed',
+                                title: 'Gagal Diproses',
+                                value: this.statistics.failed_analyses,
+                                label: 'Perlu perhatian',
+                                icon: '❌',
+                                color: '#dc3545',
+                                type: 'danger'
+                            }
+                        ];
+                    },
+                    
+                    /**
+                     * Status koneksi API
+                     */
+                    apiStatusClass() {
+                        return {
+                            'api-status--checking': this.apiStatus === 'checking',
+                            'api-status--connected': this.apiStatus === 'connected',
+                            'api-status--error': this.apiStatus === 'error'
+                        };
+                    },
+                    
+                    apiStatusText() {
+                        const statusMap = {
+                            checking: '🔄 Memeriksa koneksi...',
+                            connected: '🟢 Terhubung ke server',
+                            error: '🔴 Tidak dapat terhubung'
+                        };
+                        return statusMap[this.apiStatus] || '';
+                    },
+                    
+                    /**
+                     * Range halaman untuk pagination
+                     */
+                    paginationRange() {
+                        const range = [];
+                        const startPage = Math.max(1, this.currentPage - 2);
+                        const endPage = Math.min(this.totalPages, this.currentPage + 2);
+                        
+                        for (let i = startPage; i <= endPage; i++) {
+                            range.push(i);
+                        }
+                        
+                        return range;
+                    }
+                },
+                
+                /**
+                 * METHODS
+                 * Fungsi-fungsi yang dapat dipanggil dari template atau methods lain
+                 */
+                methods: {
+                    /**
+                     * Inisialisasi aplikasi
+                     */
+                    async initializeApp() {
+                        console.log('🚀 Menginisialisasi aplikasi dashboard...');
+                        
+                        try {
+                            // Test koneksi API terlebih dahulu
+                            await this.checkApiConnection();
+                            
+                            // Load data awal
+                            await Promise.all([
+                                this.loadStatisticsData(),
+                                this.loadAnalysesData()
+                            ]);
+                            
+                            // Setup auto-refresh jika dikonfigurasi
+                            this.setupAutoRefresh();
+                            
+                            console.log('✅ Aplikasi berhasil diinisialisasi');
+                            
+                        } catch (error) {
+                            console.log('❌ Error saat inisialisasi:', error);
+                            this.analysesError = 'Gagal menginisialisasi aplikasi: ' + error.message;
+                        }
+                    },
+                    
+                    /**
+                     * Cek koneksi ke API Laravel
+                     */
+                    async checkApiConnection() {
+                        this.apiStatus = 'checking';
+                        
+                        try {
+                            const result = await window.apiService.testConnection();
+                            this.apiStatus = result.success ? 'connected' : 'error';
+                            
+                            window.debugLog('API Connection:', result);
+                            
+                        } catch (error) {
+                            this.apiStatus = 'error';
+                            window.debugLog('API Connection failed:', error);
+                        }
+                    },
+                    
+                    /**
+                     * Load data statistik dari API
+                     */
+                    async loadStatisticsData() {
+                        this.statisticsLoading = true;
+                        
+                        try {
+                            const data = await window.apiService.getStatistics();
+                            this.statistics = data;
+                            
+                            window.debugLog('📊 Data statistik berhasil dimuat:', data);
+                            
+                        } catch (error) {
+                            window.debugLog('❌ Error loading statistics:', error);
+                            
+                            // Jika API gagal, gunakan data demo untuk testing
+                            this.statistics = {
+                                total_analyses: 42,
+                                completed_analyses: 35,
+                                pending_analyses: 5,
+                                failed_analyses: 2,
+                                completion_rate: 83.3,
+                                average_complexity: 6.7
+                            };
+                        } finally {
+                            this.statisticsLoading = false;
+                        }
+                    },
+                    
+                    /**
+                     * Load data analisis dari API
+                     */
+                    async loadAnalysesData(page = 1) {
+                        this.analysesLoading = true;
+                        this.analysesError = null;
+                        
+                        try {
+                            const params = {
+                                page,
+                                per_page: window.AppConfig.ITEMS_PER_PAGE,
+                                ...this.filters,
+                                sort_by: this.sortBy,
+                                sort_order: this.sortOrder
+                            };
+                            
+                            const data = await window.apiService.getAnalyses(params);
+                            
+                            this.analyses = data.data;
+                            this.currentPage = data.current_page;
+                            this.totalPages = data.last_page;
+                            this.paginationInfo = {
+                                from: data.from,
+                                to: data.to,
+                                total: data.total
+                            };
+                            
+                            window.debugLog('📋 Data analisis berhasil dimuat:', data);
+                            
+                        } catch (error) {
+                            window.debugLog('❌ Error loading analyses:', error);
+                            this.analysesError = error.message;
+                            
+                            // Jika API gagal, gunakan data demo
+                            this.analyses = this.generateDemoData();
+                            this.totalPages = 1;
+                            this.currentPage = 1;
+                        } finally {
+                            this.analysesLoading = false;
+                        }
+                    },
+                    
+                    /**
+                     * Generate data demo untuk testing
+                     */
+                    generateDemoData() {
+                        return [
+                            {
+                                id: 1,
+                                project_name: 'Laravel E-Commerce API',
+                                language: 'php',
+                                status: 'completed',
+                                complexity_score: 7.2,
+                                issues_found: 8,
+                                created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                                repository_url: 'https://github.com/user/laravel-ecommerce'
+                            },
+                            {
+                                id: 2,
+                                project_name: 'Vue.js Dashboard',
+                                language: 'javascript',
+                                status: 'pending',
+                                complexity_score: null,
+                                issues_found: 0,
+                                created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+                                repository_url: 'https://github.com/user/vue-dashboard'
+                            },
+                            {
+                                id: 3,
+                                project_name: 'Python Data Analysis',
+                                language: 'python',
+                                status: 'failed',
+                                complexity_score: 9.1,
+                                issues_found: 23,
+                                created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                                repository_url: 'https://github.com/user/python-data-analysis'
+                            }
+                        ];
+                    },
+                    
+                    /**
+                     * Handle perubahan sorting
+                     */
+                    handleSortChange(sortConfig) {
+                        window.debugLog('🔄 Sorting changed:', sortConfig);
+                        
+                        this.sortBy = sortConfig.sortBy;
+                        this.sortOrder = sortConfig.sortOrder;
+                        
+                        // Reload data dengan sorting baru
+                        this.loadAnalysesData(1);
+                    },
+                    
+                    /**
+                     * Handle klik pada kartu statistik
+                     */
+                    handleStatisticCardClick(cardData) {
+                        window.debugLog('📊 Kartu statistik diklik:', cardData);
+                        
+                        // Filter berdasarkan kartu yang diklik
+                        if (cardData.type === 'success') {
+                            this.filters.status = 'completed';
+                        } else if (cardData.type === 'warning') {
+                            this.filters.status = 'pending';
+                        } else if (cardData.type === 'danger') {
+                            this.filters.status = 'failed';
+                        }
+                        
+                        this.applyFilters();
+                    },
+                    
+                    /**
+                     * Terapkan filter dan reload data
+                     */
+                    applyFilters() {
+                        window.debugLog('🔍 Menerapkan filter:', this.filters);
+                        this.currentPage = 1; // Reset ke halaman pertama
+                        this.loadAnalysesData(1);
+                    },
+                    
+                    /**
+                     * Bersihkan semua filter
+                     */
+                    clearAllFilters() {
+                        window.debugLog('🧹 Membersihkan semua filter');
+                        
+                        this.filters = {
+                            status: '',
+                            language: '',
+                            project: ''
+                        };
+                        
+                        this.applyFilters();
+                    },
+                    
+                    /**
+                     * Debounce filter untuk search input
+                     */
+                    debounceFilter() {
+                        if (this.filterDebounceTimer) {
+                            clearTimeout(this.filterDebounceTimer);
+                        }
+                        
+                        this.filterDebounceTimer = setTimeout(() => {
+                            this.applyFilters();
+                        }, 500);
+                    },
+                    
+                    /**
+                     * Ganti halaman pagination
+                     */
+                    changePage(page) {
+                        if (page >= 1 && page <= this.totalPages && !this.loading) {
+                            window.debugLog(`📄 Pindah ke halaman: ${page}`);
+                            this.loadAnalysesData(page);
+                        }
+                    },
+                    
+                    /**
+                     * Refresh semua data
+                     */
+                    async refreshAllData() {
+                        window.debugLog('🔄 Refresh semua data...');
+                        
+                        this.loading = true;
+                        
+                        try {
+                            await Promise.all([
+                                this.loadStatisticsData(),
+                                this.loadAnalysesData(this.currentPage)
+                            ]);
+                            
+                            // Show success message
+                            this.showNotification('✅ Data berhasil diperbarui', 'success');
+                            
+                        } catch (error) {
+                            this.showNotification('❌ Gagal memperbarui data', 'error');
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+                    
+                    /**
+                     * Setup auto-refresh data
+                     */
+                    setupAutoRefresh() {
+                        const interval = window.AppConfig.AUTO_REFRESH_INTERVAL;
+                        
+                        if (interval > 0) {
+                            this.autoRefreshTimer = setInterval(() => {
+                                window.debugLog('🔄 Auto-refresh data...');
+                                this.refreshAllData();
+                            }, interval);
+                            
+                            window.debugLog(`⏰ Auto-refresh diatur setiap ${interval/1000} detik`);
+                        }
+                    },
+                    
+                    /**
+                     * Event handlers untuk tabel analisis
+                     */
+                    handleAnalysisRowClick(analysis) {
+                        window.debugLog('👆 Baris tabel diklik:', analysis);
+                        // Implementasi detail view bisa ditambahkan di sini
+                    },
+                    
+                    handleViewAnalysis(analysis) {
+                        window.debugLog('👁️ View analisis:', analysis);
+                        // Implementasi modal atau page detail
+                    },
+                    
+                    handleEditAnalysis(analysis) {
+                        window.debugLog('✏️ Edit analisis:', analysis);
+                        // Implementasi form edit
+                    },
+                    
+                    handleDeleteAnalysis(analysis) {
+                        window.debugLog('🗑️ Delete analisis:', analysis);
+                        // Implementasi delete dengan API call
+                    },
+                    
+                    handleCreateNew() {
+                        window.debugLog('➕ Buat analisis baru');
+                        // Implementasi form create
+                    },
+                    
+                    /**
+                     * Get empty message berdasarkan filter
+                     */
+                    getEmptyMessage() {
+                        const hasFilters = this.filters.status || this.filters.language || this.filters.project;
+                        
+                        if (hasFilters) {
+                            return 'Tidak ada analisis yang sesuai dengan filter. Coba sesuaikan kriteria pencarian.';
+                        }
+                        
+                        return 'Belum ada analisis yang dibuat. Klik "Buat Analisis Baru" untuk memulai.';
+                    },
+                    
+                    /**
+                     * Show notification (implementasi sederhana)
+                     */
+                    showNotification(message, type = 'info') {
+                        // Implementasi sederhana dengan alert
+                        // Bisa diganti dengan toast notification yang lebih baik
+                        alert(message);
+                    }
+                },
+                
+                /**
+                 * LIFECYCLE HOOKS
+                 * Fungsi yang dipanggil otomatis oleh Vue.js pada tahap tertentu
+                 */
+                
+                // Dipanggil setelah komponen selesai dimount ke DOM
+                async mounted() {
+                    console.log('🎯 Vue app mounted - memulai inisialisasi...');
+                    
+                    // Hide loading dan show app
+                    document.getElementById('pre-loading').style.display = 'none';
+                    document.getElementById('app').classList.add('vue-ready');
+                    
+                    // Inisialisasi aplikasi
+                    await this.initializeApp();
+                },
+                
+                // Dipanggil sebelum komponen dibuang dari memori
+                beforeUnmount() {
+                    // Cleanup timers
+                    if (this.filterDebounceTimer) {
+                        clearTimeout(this.filterDebounceTimer);
+                    }
+                    
+                    if (this.autoRefreshTimer) {
+                        clearInterval(this.autoRefreshTimer);
+                    }
+                    
+                    console.log('🧹 Vue app cleanup completed');
+                }
+            });
+            
+            // Register komponen global
+            app.component('StatisticsCard', window.StatisticsCard);
+            app.component('AnalysisTable', window.AnalysisTable);
+            
+            // Mount aplikasi ke DOM
+            app.mount('#app');
+            
+            console.log('✅ Vue.js app berhasil dimount!');
+        }
+    </script>
+</body>
+</html>
