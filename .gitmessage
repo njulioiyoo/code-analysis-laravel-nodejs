@@ -1,0 +1,10 @@
+# Conventional commit format
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# Examples:
+# feat(auth): add user login functionality
+# fix(api): resolve null pointer in user controller  
+# docs(readme): update installation instructions
+# refactor(models): optimize database queries
