@@ -5,10 +5,12 @@ on:
     branches: [ main, develop ]
     paths:
       - 'examples/laravel/**'
+      - '!.github/workflows/**'  # Ignore workflow changes to prevent self-modification
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'examples/laravel/**'
+      - '!.github/workflows/**'
 
 jobs:
   laravel-tests:

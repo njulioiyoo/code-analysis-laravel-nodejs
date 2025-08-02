@@ -1,0 +1,7 @@
+# GitHub Actions workflows require admin approval for changes
+/.github/workflows/ @njulioiyoo
+
+# Protect critical configuration files
+/examples/laravel/composer.json @njulioiyoo
+/examples/laravel/phpstan.neon @njulioiyoo
+/examples/laravel/pint.json @njulioiyoo
