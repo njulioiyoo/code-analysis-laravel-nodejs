@@ -8,8 +8,9 @@
 2. **Solution Overview** - Automated code analysis pipeline
 3. **Tools & Implementation** - PHPStan, Laravel Pint, ESLint, Pre-commit hooks
 4. **Live Demo** - Real bug detection dan fixing
-5. **Practical Setup** - Cara implement di project kalian
-6. **Q&A & Best Practices**
+5. **Practical Setup** - Cara implement di project kalian  
+6. **GitHub Actions & Security** - Server-side protection
+7. **Q&A & Best Practices**
 
 ---
 
@@ -307,7 +308,184 @@ git commit -m "Test commit"  # Will run analysis automatically
 
 ---
 
-## 💡 **8. Best Practices & Tips**
+## 🔒 **8. GitHub Actions & Security Protection**
+
+### **Extending Quality Gates to CI/CD**
+
+**Problem:** Pre-commit hooks hanya jalan di local, bisa di-bypass dengan `--no-verify`
+
+**Solution:** GitHub Actions workflow untuk server-side validation
+
+### **GitHub Actions Workflow Setup**
+
+```yaml
+name: Laravel CI with Pre-commit Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: ['examples/laravel/**']
+  pull_request:
+    branches: [ main, develop ]
+    paths: ['examples/laravel/**']
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./examples/laravel
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype
+    
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+      
+    - name: Run PHPStan Analysis
+      run: ./vendor/bin/phpstan analyse --no-progress
+      
+    - name: Check unused variables in all PHP files
+      run: |
+        find app -name "*.php" -type f | while read -r phpfile; do
+          php detect-unused-vars.php "$phpfile"
+        done
+        
+    - name: Run Laravel Pint (Code Style)
+      run: ./vendor/bin/pint --test
+```
+
+### **🚨 Critical Security Issue: Workflow Bypass Attempts**
+
+**Real-world scenario:** Developer nakal mencoba disable quality checks
+
+#### **Attack Vector Example:**
+
+**Developer commits:**
+```yaml
+# ❌ Malicious changes to .github/workflows/laravel-ci.yml
+- name: Run PHPStan Analysis
+  run: echo "Skipping PHPStan analysis - Performance optimization!"
+  
+- name: Check unused variables  
+  run: echo "✅ All clean! (NOT!)"
+```
+
+**CODEOWNERS bypass attempt:**
+```
+# ❌ Developer tries to remove protection
+# /.github/workflows/ @njulioiyoo  # <- commented out!
+```
+
+#### **Protection Implementation:**
+
+**1. CODEOWNERS File:**
+```
+# .github/CODEOWNERS
+/.github/workflows/ @njulioiyoo
+/examples/laravel/phpstan.neon @njulioiyoo
+/examples/laravel/composer.json @njulioiyoo
+```
+
+**2. Branch Protection Rules:**
+- ✅ Require pull request reviews
+- ✅ Require review from CODEOWNERS  
+- ✅ Restrict pushes to matching branches
+- ✅ Include administrators
+
+**3. Path Exclusion (Self-protection):**
+```yaml
+on:
+  push:
+    paths:
+      - 'examples/laravel/**'
+      - '!.github/workflows/**'  # Ignore workflow changes
+```
+
+#### **Live Demo: Attack & Defense**
+
+**Step 1 - Developer Attack:**
+```bash
+# Developer creates malicious branch
+git checkout -b developer-bypass-attempt
+git config user.name "Developer Nakal"
+
+# Disable quality checks
+echo 'run: echo "Skipping all checks!"' > .github/workflows/laravel-ci.yml
+
+# Try to push directly to main
+git add . && git commit -m "Performance optimization"
+git push origin main
+```
+
+**Step 2 - GitHub Blocks:**
+```
+remote: error: GH013: Repository rule violations found
+remote: - Changes must be made through a pull request.
+remote: - Cannot update this protected ref.
+remote: ! [remote rejected] main -> main (push declined)
+```
+
+**Step 3 - PR Review Process:**
+```diff
+# GitHub PR shows clear diff:
+- run: ./vendor/bin/phpstan analyse --no-progress
++ run: echo "Skipping PHPStan analysis - Developer bypass attempt!"
+```
+
+**Admin can see malicious intent and REJECT the PR!**
+
+#### **Security Monitoring**
+
+**Indicators of bypass attempts:**
+- PRs that modify `.github/workflows/`
+- Comments disabling quality tools
+- Changes to CODEOWNERS file
+- Suspicious commit messages about "performance"
+
+**Response strategy:**
+1. **Immediate:** Reject PR and document incident
+2. **Investigation:** Review developer's recent commits  
+3. **Education:** Team training on quality importance
+4. **Policy:** Clear consequences for bypass attempts
+
+### **Best Practices for Workflow Security**
+
+✅ **Always review workflow changes** - Even from trusted developers  
+✅ **Monitor PR diffs carefully** - Look for suspicious modifications  
+✅ **Use required status checks** - Block merges if CI fails  
+✅ **Document security policies** - Clear team guidelines  
+✅ **Regular security audits** - Review branch protection settings  
+
+❌ **Never auto-approve** workflow PRs without manual review  
+❌ **Don't grant admin access** without strict need  
+❌ **Avoid `--no-verify`** unless absolutely necessary  
+
+### **Metrics & Monitoring**
+
+**Track these security metrics:**
+- Number of bypass attempts per month
+- PRs modifying workflow files  
+- Failed CI runs due to quality issues
+- Time from quality failure to fix
+
+**Example dashboard:**
+```
+🔒 Security Metrics (Last 30 days)
+├── Workflow bypass attempts: 2 (BLOCKED)
+├── Quality gate failures: 15 (All fixed before merge)
+├── Average fix time: 12 minutes
+└── Protection effectiveness: 100%
+```
+
+---
+
+## 💡 **9. Best Practices & Tips**
 
 ### **Do's:**
 ✅ **Team alignment** - Diskusikan rules dengan tim dulu  
@@ -328,7 +506,7 @@ git commit -m "Test commit"  # Will run analysis automatically
 
 ---
 
-## ❓ **9. FAQ**
+## ❓ **10. FAQ**
 
 ### **Q: Apakah analysis akan memperlambat development?**
 **A:** Analysis time ~2-3 detik untuk 50+ files. Pre-commit add ~10-15 detik total. Trade-off: 15 detik vs hours debugging production bugs.
@@ -345,9 +523,12 @@ git commit -m "Test commit"  # Will run analysis automatically
 ### **Q: Gimana convince management untuk adopt ini?**
 **A:** Show metrics: bug reduction, faster reviews, less hotfixes. Demo di pilot project, show concrete results.
 
+### **Q: Bagaimana kalau developer mencoba bypass quality checks?**
+**A:** Gunakan GitHub branch protection rules + CODEOWNERS file. Semua perubahan workflow harus melalui PR dan review admin. Track bypass attempts sebagai security metrics.
+
 ---
 
-## 🚀 **10. Call to Action**
+## 🚀 **11. Call to Action**
 
 ### **Next Steps:**
 1. **Try it out** - Setup di sandbox project dulu
