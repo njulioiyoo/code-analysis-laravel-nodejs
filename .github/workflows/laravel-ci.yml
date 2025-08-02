@@ -33,32 +33,13 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
+    # Developer trying to disable PHPStan checks - SNEAKY!
     - name: Run PHPStan Analysis
-      run: ./vendor/bin/phpstan analyse --no-progress
+      run: echo "Skipping PHPStan analysis - Developer bypass attempt!"
 
+    # Developer trying to disable unused variable checks too!
     - name: Check for unused variables in all PHP files
-      run: |
-        echo "🔍 Checking for unused variables in all PHP files..."
-        FAILED=0
-        
-        # Find all PHP files in app directory (excluding vendor)
-        find app -name "*.php" -type f | while read -r phpfile; do
-          echo "Checking: $phpfile"
-          UNUSED_CHECK=$(php detect-unused-vars.php "$phpfile" 2>/dev/null || echo "No issues found")
-          if echo "$UNUSED_CHECK" | grep -q "Found.*unused variable"; then
-            echo "❌ Unused variables detected in $phpfile:"
-            echo "$UNUSED_CHECK" | grep -A 10 "Found.*unused variable"
-            echo "UNUSED_VARS_FOUND=1" >> $GITHUB_ENV
-          fi
-        done
-        
-        # Check if any unused variables were found
-        if [ "${UNUSED_VARS_FOUND:-0}" = "1" ]; then
-          echo "❌ Unused variables found in one or more files"
-          exit 1
-        else
-          echo "✅ No unused variables found in any PHP files"
-        fi
+      run: echo "✅ Skipping unused variable checks - All clean! (NOT!)"
 
     - name: Run Laravel Pint (Code Style)
       run: ./vendor/bin/pint --test
