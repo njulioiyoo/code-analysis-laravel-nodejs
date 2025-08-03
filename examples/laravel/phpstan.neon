@@ -8,12 +8,9 @@ parameters:
     # Use level 5 for testing (temporarily lowered from max)
     level: 5
 
-    # Performance optimizations
+    # Performance optimizations  
     tmpDir: storage/phpstan
-    parallel:
-        jobSize: 20
-        maximumNumberOfProcesses: 32
-        minimumNumberOfJobsPerProcess: 2
+    # Note: parallel options may not be available in older PHPStan versions
     
     ignoreErrors:
         - '#PHPDoc tag @var#'

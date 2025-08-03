@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for SonarQube
+  postgres-sonar:
+    image: postgres:13
+    container_name: postgres-sonar
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar_password
+      POSTGRES_DB: sonarqube
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_sonar_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Different port to avoid conflict
+    networks:
+      - sonarqube-network
+    restart: unless-stopped
+
+  # SonarQube Server
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube-codeanalysis
+    depends_on:
+      - postgres-sonar
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres-sonar:5432/sonarqube
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar_password
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
+      # Performance tuning
+      SONAR_WEB_JAVAADDITIONALOPTS: "-XX:MaxRAMPercentage=50"
+      SONAR_CE_JAVAADDITIONALOPTS: "-XX:MaxRAMPercentage=25"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      # Mount project for analysis
+      - ./examples/laravel:/usr/src/laravel
+      - ./examples/nodejs:/usr/src/nodejs
+    ports:
+      - "9000:9000"
+    networks:
+      - sonarqube-network
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # SonarQube Scanner (for CLI analysis)
+  sonar-scanner:
+    image: sonarsource/sonar-scanner-cli:latest
+    container_name: sonar-scanner
+    depends_on:
+      - sonarqube
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+    volumes:
+      - ./:/usr/src
+    working_dir: /usr/src
+    networks:
+      - sonarqube-network
+    profiles:
+      - scanner  # Only start when explicitly requested
+
+volumes:
+  postgres_sonar_data:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+
+networks:
+  sonarqube-network:
+    driver: bridge
