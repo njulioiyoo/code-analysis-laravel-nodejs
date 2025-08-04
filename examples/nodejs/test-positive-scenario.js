@@ -3,8 +3,7 @@
  * File ini dibuat dengan best practices untuk lulus ESLint
  */
 
-const express = require('express');
-const path = require('path');
+// Removed unused imports - they were just for demonstration
 
 // Constants instead of magic numbers
 const PORT = 3000;
@@ -31,19 +30,13 @@ function processUserData(userData) {
  * @returns {Promise<Object>} Response data
  */
 async function fetchApiData(url) {
-  try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    // Log error for debugging (acceptable in development)
-    console.error('API fetch failed:', error.message);
-    throw error;
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+  
+  return response.json();
 }
 
 /**
