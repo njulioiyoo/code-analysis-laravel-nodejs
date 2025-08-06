@@ -8,6 +8,10 @@ parameters:
     # Use level 5 for testing (temporarily lowered from max)
     level: 5
 
+    # Performance optimizations  
+    tmpDir: storage/phpstan
+    # Note: parallel options may not be available in older PHPStan versions
+    
     ignoreErrors:
         - '#PHPDoc tag @var#'
 
