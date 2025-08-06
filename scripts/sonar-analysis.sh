@@ -47,7 +47,7 @@ fi
 
 # Run SonarQube analysis
 if docker-compose -f docker-compose.sonarqube.yml run --rm sonar-scanner sonar-scanner \
-    -Dsonar.host.url=http://sonarqube.web.local:9000 \
+    -Dsonar.host.url=http://sonarqube:9000 \
     -Dsonar.token=$SONAR_TOKEN \
     -Dsonar.projectKey=code-analysis-laravel-nodejs \
     -Dsonar.projectName="Code Analysis - Laravel & Node.js" \

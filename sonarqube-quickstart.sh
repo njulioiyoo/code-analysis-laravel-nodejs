@@ -45,7 +45,7 @@ docker-compose -f docker-compose.sonarqube.yml up -d
 wait_for_service "PostgreSQL" "docker exec postgres-sonar pg_isready -U sonar"
 
 # Step 3: Wait for SonarQube
-wait_for_service "SonarQube" "curl -s http://sonarqube.web.local:9000/api/system/status | grep -q UP"
+wait_for_service "SonarQube" "curl -s http://localhost:9000/api/system/status | grep -q UP"
 
 echo ""
 echo -e "${BLUE}🔧 Setting up SonarQube project...${NC}"
